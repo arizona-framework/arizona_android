@@ -1,7 +1,7 @@
 # Arizona Android client
 
 The **Android client** for [Arizona](https://github.com/arizona-framework/arizona)'s
-`?native` (JSON) render target — the native counterpart of the browser client in
+`?json` render target — the native counterpart of the browser client in
 arizona's `assets/js/`. The wire protocol it speaks is defined by arizona's
 `include/arizona_wire.hrl` and `include/arizona_effect.hrl`; `make check-wire`
 compares this client's codes against them.
@@ -17,7 +17,7 @@ logic and ships a cached-statics + diff stream; this thin client reconstructs a
 device, and nothing is compiled to native ahead of time — the UI is real Compose
 widgets built at runtime from the server's JSON.
 
-It mirrors the proven JS reference client (`e2e/utils/native_client.js` in the
+It mirrors the proven JS reference client (`e2e/utils/json_client.js` in the
 Arizona repo): connect → cache statics by fingerprint → interleave statics+dynamics
 (JSON-encoding each value) → flatten `#slot` fragments → apply ops against an
 `az → node` registry → send events.
@@ -31,7 +31,7 @@ Arizona repo): connect → cache statics by fingerprint → interleave statics+d
   - `Renderer.kt` — `WidgetRegistry` + `RenderContext` + `ArizonaView` (vocabulary-agnostic
     Compose dispatch).
 - **`:sample`** — a demo app: registers a `Column`/`Row`/`Text`/`Button` vocabulary and
-  renders the server's `/native/counter` view.
+  renders the server's `/json/counter` view.
 
 ## Status & caveats
 
