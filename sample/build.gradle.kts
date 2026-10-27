@@ -76,7 +76,7 @@ tasks.matching { it.name.startsWith("install") }.configureEach {
 }
 // Before connected (instrumented) tests -> a dependency, so the tunnel is
 // deterministically up before the tests launch the app (used by CI and
-// `make test-android`, which therefore no longer call adb reverse themselves).
+// `make e2e`, which therefore no longer call adb reverse themselves).
 tasks.matching { it.name.startsWith("connected") }.configureEach {
     dependsOn(adbReverse)
 }

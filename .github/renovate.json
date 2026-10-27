@@ -1,0 +1,36 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":pinDevDependencies",
+    ":pinDigestsDisabled"
+  ],
+  "gitIgnoredAuthors": [
+    "174219110+arizona-bot[bot]@users.noreply.github.com"
+  ],
+  "packageRules": [
+    {
+      "matchFileNames": [
+        ".github/**/*.yml",
+        ".tool-versions"
+      ],
+      "groupName": "dev tools"
+    }
+  ],
+  "customManagers": [
+    {
+      "description": "The arizona release this client is built and tested against",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.arizona-version$/"
+      ],
+      "matchStrings": [
+        "^(?<currentValue>\\S+)"
+      ],
+      "datasourceTemplate": "github-tags",
+      "depNameTemplate": "arizona-framework/arizona",
+      "versioningTemplate": "semver"
+    }
+  ]
+}

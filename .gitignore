@@ -8,3 +8,6 @@ build/
 .externalNativeBuild
 .cxx
 local.properties
+
+# Pinned arizona checkout (`make arizona`, and CI)
+/_arizona/

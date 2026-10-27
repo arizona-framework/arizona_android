@@ -13,7 +13,7 @@ import org.junit.Test
  * Pure JVM tests (no emulator) of op application: frames go in through
  * [AzClient.handleText], the resulting node tree comes out. The focus is the
  * `az -> node` registry vs. nodes the DIFF creates -- coverage the on-device e2e
- * cannot give cheaply. Mirrors clients/ios Tests/AzWireTests/DispatchTests.swift
+ * cannot give cheaply. Mirrors arizona_ios Tests/AzWireTests/DispatchTests.swift
  * and e2e/utils/native_client.test.js.
  *
  * Run with ./gradlew :arizona:testDebugUnitTest

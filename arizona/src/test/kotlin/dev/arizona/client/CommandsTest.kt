@@ -9,7 +9,7 @@ import org.junit.Test
 
 /**
  * A command value is one command or a list of them, told apart as the web
- * client's executeJS does. Mirrors clients/ios Tests/AzWireTests/DispatchTests.swift
+ * client's executeJS does. Mirrors arizona_ios Tests/AzWireTests/DispatchTests.swift
  * (testCommandsTellsOneCommandFromAList) and e2e/utils/native_client.test.js.
  *
  * Run with ./gradlew :arizona:testDebugUnitTest

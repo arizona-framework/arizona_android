@@ -1,9 +1,14 @@
-# Arizona Android client (`clients/android`)
+# Arizona Android client
 
-The **Android client** for Arizona's `?native` (JSON) render target — the native
-counterpart of the browser client in `assets/js/`, kept in this repo so it
-evolves atomically with the wire protocol. Built separately from the Erlang/JS
-toolchain (its own Gradle build; not part of `make ci`).
+The **Android client** for [Arizona](https://github.com/arizona-framework/arizona)'s
+`?native` (JSON) render target — the native counterpart of the browser client in
+arizona's `assets/js/`. The wire protocol it speaks is defined by arizona's
+`include/arizona_wire.hrl` and `include/arizona_effect.hrl`; `make check-wire`
+compares this client's codes against them.
+
+It is built and tested against the arizona release pinned in `.arizona-version`, so an
+arizona change never breaks it on its own: moving to a newer arizona is a PR here that
+bumps the pin (Renovate opens one per arizona release), and CI checks it.
 
 Architecturally this is **React Native's *renderer* layer, fed by the server
 over a WebSocket** instead of by on-device JS: the server holds all state and
@@ -35,14 +40,23 @@ Authored against a known-good late-2024/early-2025 toolchain (see `gradle/libs.v
 (`dev.arizona.*`) are placeholders — rename freely. No Gradle wrapper is committed:
 build via Android Studio (it bundles its own Gradle) or a system `gradle` install —
 the CLI commands below assume `gradle` on `PATH`. CI provisions Java and Gradle with
-`mise`, from the versions pinned in the repo's root `.tool-versions`.
+`mise`, from the versions pinned in `.tool-versions`.
 
 ## Verify
 
 **Pure logic (no emulator)** — validates the interleaver against the real captured frame:
 
 ```bash
-gradle :arizona:testDebugUnitTest
+make test        # gradle :arizona:testDebugUnitTest
+```
+
+**Wire codes** — against the pinned arizona, cloned into `_arizona` by `make arizona`
+(it must be compiled, which `make server` does; `ARIZONA_DIR=../arizona` points at
+another checkout):
+
+```bash
+make arizona     # once per pin
+make check-wire
 ```
 
 **Run the demo on an emulator or device** — start the server, tunnel the device's
@@ -50,13 +64,13 @@ gradle :arizona:testDebugUnitTest
 device alike, over USB; no LAN IP), then launch the app:
 
 ```bash
-# From the repo root (server binds 0.0.0.0:4040):
-PORT=4040 ERLANG_EXTRA_ARGS=-noshell ./scripts/start_test_server.sh
+# arizona's e2e test server on 0.0.0.0:4040, from the pinned checkout:
+make server
 
 # With a running emulator/device (re-run after replugging the cable):
 adb reverse tcp:4040 tcp:4040
 
-# From clients/android (or just hit Run in Studio):
+# Or just hit Run in Studio:
 gradle :sample:installDebug   # then open the app
 ```
 
@@ -67,8 +81,11 @@ to `http://localhost:4040` (the `adb reverse` tunnel).
 **On-device e2e** (the Playwright analogue) — with the server running:
 
 ```bash
-adb reverse tcp:4040 tcp:4040 && gradle :sample:connectedCheck
+make e2e         # gradle :sample:connectedCheck (tunnels adb reverse itself)
 ```
 
-CI that wires the server + emulator together lives in
-`.github/workflows/android-e2e.yml`.
+CI that wires the server + emulator together lives in `.github/workflows/ci.yml`.
+
+## License
+
+[Apache License 2.0](LICENSE.md).

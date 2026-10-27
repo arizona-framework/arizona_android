@@ -9,7 +9,7 @@ import org.junit.Test
 
 /**
  * Reconnect decisions, as pure functions plus the frame handler that feeds them.
- * Mirrors clients/ios Tests/AzWireTests/ReconnectTests.swift and
+ * Mirrors arizona_ios Tests/AzWireTests/ReconnectTests.swift and
  * e2e/utils/native_client.test.js.
  *
  * Run with ./gradlew :arizona:testDebugUnitTest

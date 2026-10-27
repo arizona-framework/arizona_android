@@ -1,0 +1,151 @@
+---
+# Android client CI. `unit` runs the pure-JVM wire-protocol tests. `e2e` builds
+# arizona's e2e test server from an arizona checkout, checks this client's wire
+# codes against that checkout's headers, and runs the Compose UI tests on an
+# emulator that drives the server's /native examples over a real WebSocket.
+#
+# The arizona it runs against is pinned in `.arizona-version` (a release tag),
+# so an arizona change never breaks this repo's CI on its own: moving to a newer
+# arizona is a PR here that bumps the pin, and this CI is what checks it.
+name: CI
+
+"on":
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - "**"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Java + Gradle come straight from .tool-versions (mise's native format,
+      # including the exact Gradle release). No Gradle wrapper is committed.
+      - name: Set up Java + Gradle from .tool-versions
+        uses: jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8 # v5.1.2
+        with:
+          install_args: java gradle
+          cache: true
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.gradle/caches
+          key: >-
+            gradle-${{ runner.os }}-${{ hashFiles(
+              '**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Run the library unit tests
+        run: make test
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Read the pinned arizona version
+        id: arizona
+        run: echo "ref=$(cat .arizona-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout arizona
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: arizona-framework/arizona
+          ref: ${{ steps.arizona.outputs.ref }}
+          path: _arizona
+
+      - name: Set up Java + Gradle from .tool-versions
+        uses: jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8 # v5.1.2
+        with:
+          install_args: java gradle
+          cache: true
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.gradle/caches
+          key: >-
+            gradle-${{ runner.os }}-${{ hashFiles(
+              '**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      # The server is arizona's, so OTP and Node come from arizona's pins.
+      - name: Set up Erlang/OTP + rebar3
+        uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24
+        with:
+          version-type: strict
+          version-file: _arizona/.tool-versions
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: _arizona/.tool-versions
+          cache: "npm"
+          cache-dependency-path: "_arizona/package-lock.json"
+
+      - name: Install arizona's Node.js dependencies
+        working-directory: _arizona
+        run: npm ci
+
+      # A cold full compile plus vite build otherwise races the server-start
+      # poll budget below on slow runners.
+      - name: Cache rebar3 _build
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: _arizona/_build
+          key: android-rebar3-${{ runner.os }}-${{ hashFiles('_arizona/rebar.lock') }}
+          restore-keys: |
+            android-rebar3-${{ runner.os }}-
+
+      - name: Start arizona's e2e server (port 4040; the emulator reaches it via adb reverse)
+        run: |
+          make server > /tmp/arizona-server.log 2>&1 &
+          for _ in $(seq 1 180); do
+            if curl -sf http://localhost:4040/ > /dev/null; then echo "server up"; exit 0; fi
+            sleep 1
+          done
+          echo "server failed to start"; cat /tmp/arizona-server.log; exit 1
+
+      # The server start compiled the checkout, which the check needs.
+      - name: Check the wire codes against arizona's headers
+        run: make check-wire
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run emulator e2e
+        # v2.37.0
+        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a
+        with:
+          api-level: 35
+          arch: x86_64
+          script: make e2e
+
+      - name: Upload the server log
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: arizona-server-log
+          path: /tmp/arizona-server.log
+          retention-days: 7
