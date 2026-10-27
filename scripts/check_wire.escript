@@ -11,7 +11,7 @@
 %%
 %% Usage: scripts/check_wire.escript <arizona-checkout>
 %% The checkout must be compiled (`rebar3 compile`): the set of ops the native
-%% backend emits is asked of `arizona_native`, not guessed.
+%% backend emits is asked of `arizona_json`, not guessed.
 -mode(compile).
 
 main([ArizonaDir]) ->
@@ -20,7 +20,7 @@ main([ArizonaDir]) ->
     sane(Canonical),
     Ops = android(ops),
     Effects = android(effects),
-    NativeClient = native_client(ArizonaDir),
+    JsonClient = json_client(ArizonaDir),
     Failures =
         check(~"ops match the native backend", native_backend_ops(Canonical) =:= Ops, {
             native_backend_ops(Canonical), Ops
@@ -32,9 +32,9 @@ main([ArizonaDir]) ->
                 {map_get(effects, Canonical), Effects}
             ) ++
             check(
-                ~"effects agree with the reference native client (e2e/utils/native_client.js)",
-                Effects =:= NativeClient,
-                {NativeClient, Effects}
+                ~"effects agree with the reference JSON client (e2e/utils/json_client.js)",
+                Effects =:= JsonClient,
+                {JsonClient, Effects}
             ),
     case Failures of
         [] ->
@@ -81,11 +81,11 @@ canonical(Dir) ->
 
 %% The ops the native backend can emit: the header minus the capability-gated ones.
 native_backend_ops(#{ops := Ops}) ->
-    maps:without([~"LIST_PATCH" || not arizona_native:supports_list_patch()], Ops).
+    maps:without([~"LIST_PATCH" || not arizona_json:supports_list_patch()], Ops).
 
-native_client(Dir) ->
+json_client(Dir) ->
     extract(
-        read([Dir, "e2e", "utils", "native_client.js"]), ~"EFFECT_([A-Z0-9_]+)\\s*=\\s*([0-9]+)"
+        read([Dir, "e2e", "utils", "json_client.js"]), ~"EFFECT_([A-Z0-9_]+)\\s*=\\s*([0-9]+)"
     ).
 
 %% The `const val NAME = N` entries inside the Kotlin `object Op { ... }` /

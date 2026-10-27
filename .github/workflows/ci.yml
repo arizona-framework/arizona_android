@@ -2,7 +2,7 @@
 # Android client CI. `unit` runs the pure-JVM wire-protocol tests. `e2e` builds
 # arizona's e2e test server from an arizona checkout, checks this client's wire
 # codes against that checkout's headers, and runs the Compose UI tests on an
-# emulator that drives the server's /native examples over a real WebSocket.
+# emulator that drives the server's /json examples over a real WebSocket.
 #
 # The arizona it runs against is pinned in `.arizona-version` (a release tag),
 # so an arizona change never breaks this repo's CI on its own: moving to a newer

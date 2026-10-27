@@ -26,7 +26,7 @@ arizona:
 	git clone --quiet --depth 1 --branch $(ARIZONA_VERSION) https://github.com/arizona-framework/arizona.git _arizona
 	cd _arizona && npm ci
 
-# Arizona's e2e test server on :4040, which serves the /native examples.
+# Arizona's e2e test server on :4040, which serves the /json examples.
 server:
 	cd $(ARIZONA_DIR) && PORT=4040 ERLANG_EXTRA_ARGS=-noshell ./scripts/start_test_server.sh
 
